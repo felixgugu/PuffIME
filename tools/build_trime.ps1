@@ -1,16 +1,22 @@
 param(
-    [switch]$NoZip
+    [string]$OutDir = (Join-Path (Split-Path -Parent $PSScriptRoot) "release"),
+    [switch]$NoZip,
+    # Skip tools/build.ps1 when dist/ is already up to date.
+    [switch]$SkipBuild
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $dist = Join-Path $root "dist"
-$out  = Join-Path $root "release\PuffIME-trime"
+$out  = Join-Path $OutDir "PuffIME-trime"
 $cfg  = Join-Path $root "platforms\android\trime"
 
-Write-Host "==> building dictionaries"
-& (Join-Path $PSScriptRoot "build.ps1")
+if (-not $SkipBuild) {
+    Write-Host "==> building dictionaries"
+    & (Join-Path $PSScriptRoot "build.ps1")
+}
 
+New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 if (Test-Path $out) {
     Remove-Item $out -Recurse -Force
 }
@@ -34,7 +40,7 @@ Copy-Item (Join-Path $cfg "trime.custom.yaml") $out -Force
 Copy-Item (Join-Path $cfg "README.md") $out -Force
 
 if (-not $NoZip) {
-    $zip = Join-Path $root "release\PuffIME-trime.zip"
+    $zip = Join-Path $OutDir "PuffIME-trime.zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }
     Write-Host "==> creating $zip"
     Compress-Archive -Path (Join-Path $out "*") -DestinationPath $zip -Force
@@ -42,6 +48,6 @@ if (-not $NoZip) {
 
 Write-Host "==> Trime package: $out"
 if (-not $NoZip) {
-    Write-Host "==> zip:           $(Join-Path $root 'release\PuffIME-trime.zip')"
+    Write-Host "==> zip:           $(Join-Path $OutDir 'PuffIME-trime.zip')"
 }
 Get-ChildItem $out -Recurse -File | Select-Object FullName,Length | Format-Table -AutoSize
