@@ -46,6 +46,23 @@
 - [ ] `feba` + 空白 → 對（完整碼的第一候選不變）
 - [ ] `ak` 仍是 駐(1)、鐵(2)，補全候選排在後面
 
+## 同音字查詢（`'`）
+
+- [ ] `'neo` 候選第一個是 **同**，後面是 銅、童、桐、彤…
+- [ ] `'neo` + 空白 → 同
+- [ ] `'neo` + `2` → 銅
+- [ ] `'neo` + `3` → 童
+- [ ] `'qnmr` 候選第一個是 **規**，後面有 歸、龜…
+- [ ] `'qnmr` + `3` → 龜
+- [ ] `'doo` 候選第一個是 **加**，後面有 家、嘉、佳…
+- [ ] `'uoo` 候選第一個是 **台**，後面是 臺、抬、苔…（不是 一、宜）
+- [ ] 同音候選旁有最短拆碼；原字不重複顯示自己的碼
+- [ ] 同音候選太多時 PageUp/PageDown 可翻頁
+- [ ] Shift+Space 到自然符號；`'` + 空白 → 、（不影響標點）
+- [ ] 自然符號：`''` + 空白 → “
+- [ ] `a'b` 這種 `'` 不在第一碼的輸入不會觸發同音
+- [ ] Android/Trime 也有相同行為
+
 ## 英文
 
 - [ ] `the` + 空白 → 棫（有效碼）
@@ -173,6 +190,7 @@
 - 部署後沒看到方案：確認 `%APPDATA%\Rime\default.custom.yaml` 的 `schema_list`；再跑一次 `tools\deploy.ps1`。
 - 英文候選沒出現：看 `%APPDATA%\Rime\rime.lua` 是否有 `english_raw = require("english_raw")`，以及 `%APPDATA%\Rime\lua\english_raw.lua` 是否存在。
 - 簡碼提示沒出現：確認 `%APPDATA%\Rime\lua\boshiamy_hints.lua` 存在，且 build 有跑 `tools\make_hints.py`。
+- 同音字沒出現：確認 `%APPDATA%\Rime\lua\boshiamy_homophones.lua` 存在，且 `rime.lua` 有 `boshiamy_homophone = require("boshiamy_homophone")`。distribution-safe 安裝需要 `data\terra_pinyin.dict.yaml`，`make_dict.exe` 才會產生同音資料。
 - `,,fk` 沒清單：確認 `%APPDATA%\Rime\lua\forgotten.lua` 存在，並先從注音上屏幾個字。
 - `,,fk` 空白但 `,,fl` 有紀錄：確認 WeaselServer 用的是新版 `forgotten.lua`（只認 `PUFF_HARNESS_USER_DIR`，真實 IME 固定 `%APPDATA%\Rime`）。從一般 PowerShell 重跑 `tools\deploy.ps1` 或直接重啟 WeaselServer。`run_harness.ps1` / `install-package.ps1` 現在會在啟動 WeaselServer 前清掉測試變數。
 - 注音段打不出字：確認 `%APPDATA%\Rime\build\puffzhuyin.table.bin` 存在。

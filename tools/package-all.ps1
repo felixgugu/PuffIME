@@ -14,7 +14,7 @@
 # Options:
 #   -OutDir <dir>       output folder (default: release)
 #   -Distribution       Windows package without the Boshiamy-derived dictionary
-#                       (public-release safe); skips the Trime zip
+#                       and helper tables (public-release safe); skips Trime
 #   -SkipBuild          reuse the existing dist/ instead of rebuilding
 #   -NoBundle           do not create PuffIME-all.zip
 #

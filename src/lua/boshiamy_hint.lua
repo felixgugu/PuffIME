@@ -27,6 +27,14 @@ local function filter(input, env)
   end
 
   local typed = ctx.input
+  -- In homophone mode the input is ' + code.  Compare against the code alone
+  -- so the reference character does not repeat its own code; the other
+  -- homophones still get their shortest code as a hint.  Do not strip for a
+  -- lone ' or '' because those are normal punctuation codes (、 and “).
+  local compare = typed
+  if typed:sub(1, 1) == "'" and #typed > 1 and typed:sub(2, 2) ~= "'" then
+    compare = typed:sub(2)
+  end
   for cand in input:iter() do
     -- Inline code hints are only for the Boshiamy segment.  Zhuyin
     -- candidates stay narrow; use ,,fl / ,,fk to look up codes after
@@ -36,7 +44,7 @@ local function filter(input, env)
     if not is_forgotten and not is_zhuyin and cand.type ~= "raw"
         and cand.type ~= "completion" then
       local h = hints[cand.text]
-      if h and h.short ~= typed then
+      if h and h.short ~= compare then
         local c = cand.comment or ""
         if c ~= "" then
           c = c .. "  "

@@ -51,7 +51,10 @@ if (-not (Test-Path $dict)) {
     }
 
     Write-Host "==> building dictionary from $table"
-    & $builder --input $table --essay $essay --out $app
+    $terra = Join-Path $dataDir "terra_pinyin.dict.yaml"
+    $buildArgs = @("--input", $table, "--essay", $essay, "--out", $app)
+    if (Test-Path $terra) { $buildArgs += @("--terra", $terra) }
+    & $builder @buildArgs
     if ($LASTEXITCODE -ne 0) {
         throw "dictionary build failed with exit code $LASTEXITCODE"
     }

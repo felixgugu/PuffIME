@@ -61,7 +61,8 @@ $derived = @(
     "app\puffime.dict.yaml",
     "app\lua\boshiamy_hints.lua",
     "app\lua\boshiamy_prefixes.lua",
-    "app\lua\boshiamy_completion_data.lua"
+    "app\lua\boshiamy_completion_data.lua",
+    "app\lua\boshiamy_homophones.lua"
 )
 if (-not $IncludeDict) {
     foreach ($rel in $derived) {

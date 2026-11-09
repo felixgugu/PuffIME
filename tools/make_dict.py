@@ -10,6 +10,7 @@ boshiamy.lime, and install.bat runs this program to create:
     lua/boshiamy_hints.lua
     lua/boshiamy_prefixes.lua
     lua/boshiamy_completion_data.lua
+    lua/boshiamy_homophones.lua
 
 Usage:
     python tools/make_dict.py --input data/liu7.cin --out app
@@ -26,6 +27,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import lime2rime  # noqa: E402
 import make_hints  # noqa: E402
+import make_homophones  # noqa: E402
+import make_zhuyin  # noqa: E402
 
 
 def main() -> int:
@@ -39,6 +42,9 @@ def main() -> int:
                         help="liu7.cin or boshiamy.lime supplied by the user")
     parser.add_argument("--essay", type=Path, required=True,
                         help="essay.txt used for completion frequency")
+    parser.add_argument("--terra", type=Path,
+                        default=Path("data") / "terra_pinyin.dict.yaml",
+                        help="terra_pinyin.dict.yaml used for homophone lookup")
     parser.add_argument("--out", type=Path, required=True,
                         help="app/output directory")
     args = parser.parse_args()
@@ -62,13 +68,27 @@ def main() -> int:
     hints, _hfmt, bad = make_hints.build_hints(args.input)
     prefixes, _pfmt, _code_count = make_hints.build_prefixes(args.input)
     entries2, _ = make_hints.read_source(args.input)
-    completion = make_hints.build_completion(
-        entries2, make_hints.read_essay(args.essay))
+    freq = make_hints.read_essay(args.essay)
+    completion = make_hints.build_completion(entries2, freq)
 
     make_hints.write_lua(hints, lua_dir / "boshiamy_hints.lua")
     make_hints.write_prefixes(prefixes, lua_dir / "boshiamy_prefixes.lua")
     make_hints.write_completion_lua(
         completion, lua_dir / "boshiamy_completion_data.lua")
+
+    if args.terra.exists():
+        try:
+            terra_rows = make_zhuyin.read_terra(args.terra)
+            hom_codes, hom_groups, _stats = make_homophones.build(
+                entries2, terra_rows, freq)
+            make_homophones.write_lua(
+                hom_codes, hom_groups, lua_dir / "boshiamy_homophones.lua")
+            print(f"wrote homophones.lua ({len(hom_codes)} codes, "
+                  f"{len(hom_groups)} readings)")
+        except Exception as exc:  # Keep the IME installable even if this fails.
+            print(f"warning: homophone table not built: {exc}")
+    else:
+        print(f"warning: {args.terra} not found; homophone lookup disabled")
 
     print(f"wrote hints.lua ({len(hints)} chars), prefixes.lua "
           f"({len(prefixes)} prefixes), completion_data.lua "

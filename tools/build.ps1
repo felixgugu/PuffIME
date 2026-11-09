@@ -6,6 +6,7 @@
 #   dist/puffime.dict.yaml   (from data/liu7.cin by default)
 #   dist/puffzhuyin.dict.yaml     (from terra_pinyin + essay)
 #   dist/lua/boshiamy_completion_data.lua (prefix -> essay-frequency order)
+#   dist/lua/boshiamy_homophones.lua      (code -> same-pronunciation chars)
 #   dist/lua/zhuyin_completion_data.lua   (zhuyin prefix -> essay-frequency order)
 # Copied files:
 #   src/*.yaml, src/lua/*.lua
@@ -59,6 +60,14 @@ try {
         python tools\make_hints.py --input data\boshiamy.lime
     }
 
+    Write-Host "==> building homophone table"
+    if ($resolved -eq "cin") {
+        python tools\make_homophones.py --input data\liu7.cin
+    }
+    else {
+        python tools\make_homophones.py --input data\boshiamy.lime
+    }
+
     Remove-Item (Join-Path $dist "lime-report.txt") -ErrorAction SilentlyContinue
 
     New-Item -ItemType Directory -Force -Path (Join-Path $dist "lua") | Out-Null
@@ -84,6 +93,7 @@ try {
         "lua\boshiamy_hints.lua",
         "lua\boshiamy_prefixes.lua",
         "lua\boshiamy_completion_data.lua",
+        "lua\boshiamy_homophones.lua",
         "lua\boshiamy_hint.lua",
         "lua\boshiamy_completion.lua",
         "lua\boshiamy_v.lua",

@@ -6,6 +6,7 @@
 
 english_raw = require("english_raw")
 boshiamy_completion = require("boshiamy_completion")
+boshiamy_homophone = require("boshiamy_homophone")
 grave_guard = require("grave_guard")
 zhuyin_digits = require("zhuyin_digits")
 zhuyin_partial = require("zhuyin_partial")

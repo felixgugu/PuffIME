@@ -28,6 +28,7 @@ recognizer:
 abc segment
   ├─ table_translator                 # puffime.dict.yaml（只做精確碼）
   ├─ lua_translator@boshiamy_completion  # 前綴候選，依 essay 字頻排序
+  ├─ lua_translator@boshiamy_homophone   # ' + 字碼 → 同音字
   └─ lua_translator@english_raw       # 原文候選，quality = -1000000，comment = 英
 
 zhuyin segment（前綴 `）
@@ -123,6 +124,65 @@ quality 的安排：
 - 副作用：任何「某個碼的前綴」都會有中文候選，所以空白鍵會上屏第一個候選。
   `was`、`hello` 不是任何碼的前綴，才維持「空白不送出」。
 - 這是靜態字頻，不會學習個人選字；LIME 式學習需要另外的使用者詞庫或紀錄。
+
+### 同音字查詢（`'` + 字碼）
+
+嘸蝦米的同音字查詢：知道讀音、忘記拆碼時，先按 `'`，再打你知道的那個同音字的
+正常拆碼。例如知道「規」是 `qnmr`，但不會拆「龜」：
+
+```
+'qnmr
+```
+
+候選先列原字（規），後面是所有同音字（歸、龜…）。`'neo` 則是
+同、銅、童、桐、彤…
+
+實作分成資料與 Lua 兩層：
+
+- `tools/make_homophones.py` 讀字碼表、`terra_pinyin.dict.yaml`、`essay.txt`，
+  產生 `dist/lua/boshiamy_homophones.lua`：
+  - `codes[字碼] = 原字、讀音、注音`
+  - `groups[讀音] = 同音字清單（依 essay 字頻排序）`
+- `src/lua/boshiamy_homophone.lua` 是 `lua_translator`，只處理 `abc` 段且輸入
+  以 `'` 開頭、後面有字碼的情況。原字先 yield，再 yield 同音字；quality 都是 0，
+  所以維持 yield 順序。候選型別是 `homophone`，`boshiamy_hint.lua` 會替非原字
+  補上最短拆碼。
+
+幾個規則：
+
+- **只取原字的第一個候選**：`codes` 的原字是該字碼在字碼表中的第一個有讀音的
+  字，和正常打這個碼的第一個候選一致。原字一定排第一。
+- **聲調要相同**：`同` 是 `ㄊㄨㄥˊ`，只列二聲字，不會混入 `ㄊㄨㄥˋ`。
+- **破音字取最常用讀音**：
+  - 先看 terra 的單字讀音百分比（例如 `行` 90% 是 `xing2`）。
+  - 再用 terra 的詞語讀音、以 `essay.txt` 詞頻加權，避免 `台` 被 terra 的罕見
+    `yi2` 39% 誤導；`'uoo` 會落在 `tai2`（台、臺、抬、苔…）。
+  - terra 完全沒有百分比時（`規`、`龜`、`同` 等），保留 terra 第一筆讀音。
+- **只收字碼表裡有的字**：同音字清單限制在字碼表的 19,680 個字內，這樣每個候選
+  都有拆碼可顯示，也不會出現幾百個罕見 CJK 擴充字。`'neo` 約 50 個候選，
+  最大群組 198 個。
+- **`'` 的標點不受影響**：輸入只有 `'` 時，Lua 找不到同音資料，仍由主 table
+  translator 提供「、」；`''` 仍是「“」。只有 `'` + 非空字碼才會進入同音模式。
+- **不使用額外字典**：不需要新增 Rime dictionary 或 schema dependency；資料是
+  Lua table，和 `boshiamy_completion_data.lua` 一樣在 build 時產生。
+
+包裝時的處理：
+
+- 這份資料是從使用者的嘸蝦米字碼表衍生的，因此列在
+  `tools/package.ps1` 的 `$derived` 清單；distribution-safe 套件不含它。
+- `make_dict.py` / `make_dict.exe` 在安裝時用使用者的字碼表 + `data\terra_pinyin.dict.yaml`
+  本機產生，所以發佈版仍然有同音字功能。
+- `boshiamy_homophone.lua` 用 `pcall(require(...))` 載入資料；若資料不存在，
+  只是沒有同音候選，不會讓整個 `rime.lua` 載入失敗。
+- Android/Trime 會自動帶上同樣的 Lua 與資料，不需要另外改 schema。
+
+已知限制：
+
+- 讀音來源是 terra_pinyin，少數字跟官方 Boshiamy pinyin 表不同。例如官方範例
+  的「嘸」是 `ㄨˇ`，terra 是 `ㄈㄨˇ`；`'ovff` 會列 `ㄈㄨˇ` 的同音字。
+  若要完全照官方，需要另外提供官方的 `pinyi.txt` 對照表。
+- 破音字預設只取一個最常用讀音；不支援同時列出所有讀音。
+- 同音字是靜態字頻排序，不學習個人選字。
 
 ### 無效拆碼的空白與連續英文
 
@@ -446,7 +506,7 @@ preset_color_schemes:
 
 ## 配色
 
-`platforms/windows/weasel.custom.yaml` 的 `preset_color_schemes` 定義五款：
+`platforms/windows/weasel.custom.yaml` 的 `preset_color_schemes` 定義 15 款：
 
 | key | 名稱 | 風格 |
 |---|---|---|
@@ -455,10 +515,20 @@ preset_color_schemes:
 | `puff_gray` | Puff 灰 | 灰色底、低對比 |
 | `puff_macaron` | Puff 馬卡龍 | 粉紅底、薄荷／薰衣草 highlight |
 | `puff_mediterranean` | Puff 地中海 | 沙色底、海藍／陶土色 |
+| `puff_sakura` | Puff 櫻 | 淡粉白底 |
+| `puff_cherry` | Puff 櫻桃 | 櫻桃紅點綴 |
+| `puff_ocean` | Puff 海洋 | 淡藍底、海軍藍字 |
+| `puff_mint` | Puff 薄荷 | 薄荷綠底 |
+| `puff_lavender` | Puff 薰衣草 | 淡紫底 |
+| `puff_morandi_blue` | Puff 莫蘭迪藍 | 低飽和藍灰 |
+| `puff_morandi_tea` | Puff 莫蘭迪茶棕 | 低飽和茶棕 |
+| `puff_amber_dark` | Puff 琥珀深 | 深棕底、琥珀字 |
+| `puff_forest_dark` | Puff 森林深 | 深綠底、薄荷字 |
+| `puff_ink_dark` | Puff 墨黑高對比 | 黑底高對比 |
 
 Weasel 的顏色值是 **`0xBBGGRR`（BGR）**，不是 RGB。`style/color_scheme` 決定目前使用哪一款。
 
-- 開發機：`tools/theme.ps1 -Name <light|dark|gray|macaron|mediterranean>` 會改
+- 開發機：`tools/theme.ps1 -Name <name>`（`-List` 可列出全部）會改
   `platforms/windows/weasel.custom.yaml`、同步 `dist`，再呼叫 `deploy.ps1` 重新部署。
 - 已安裝的套件：`theme-package.ps1 -Name <name>` 會改
   `%APPDATA%\Rime\weasel.custom.yaml` 與套件內的 `app\weasel.custom.yaml`
@@ -574,6 +644,8 @@ recognizer:
 - 破音字詞語用前 3 個讀音組合，可能仍有少數詞的讀音沒被涵蓋。
 - 繁簡字同時存在，尚未過濾。
 - 英文只做原文候選；沒有詞庫補完。
+- 同音字查詢的讀音來自 terra_pinyin；少數字（例如嘸）與官方 pinyin 表不同。
+  破音字只取最常用讀音。
 - `, . [ ] '` 是字碼，因此不能用它們翻頁；翻頁改用 PageUp/PageDown。
 - Shift 被保留給 `Shift+數字` 選字，因此 ASCII 模式改用 CapsLock。
 - 符號選單依賴 Weasel 內建 `symbols.yaml`；自訂分類要改該檔或自帶 preset。

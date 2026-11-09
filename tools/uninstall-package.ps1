@@ -52,6 +52,7 @@ $luaFiles = @(
     "boshiamy_completion.lua",
     "boshiamy_hint.lua",
     "boshiamy_hints.lua",
+    "boshiamy_homophones.lua",
     "boshiamy_prefixes.lua",
     "boshiamy_space.lua",
     "boshiamy_v.lua",
