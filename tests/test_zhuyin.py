@@ -116,6 +116,25 @@ class TestZhuyin(unittest.TestCase):
         # Complete syllables without longer codes have no completion list.
         for code in ("18", "su3", "ji3", "1u0", "su3c"):
             self.assertNotIn(code, pc)
+        # First-tone aliases are internal; never offer them as completions.
+        for _prefix, entries in pc.items():
+            for text, code in entries:
+                self.assertNotIn("=", code, (text, code))
+
+    def test_first_tone_alias(self):
+        # Normal codes keep first tone implicit so existing input still works.
+        self.assertEqual(z.convert_reading("ji1")[0], "ru")
+        self.assertEqual(z.convert_reading("zhong1")[0], "5j/")
+        # Marked aliases add one explicit first-tone marker per first tone.
+        self.assertEqual(z.convert_reading_marked("ji1")[0], "ru=")
+        self.assertEqual(z.convert_reading_marked("zhong1")[0], "5j/=")
+        self.assertEqual(z.convert_reading_marked("ni3")[0], "su3")
+        self.assertEqual(z.convert_reading_marked("ji1 cha2")[0], "ru=t86")
+        # 稽 has both the toneless code and the first-tone alias.
+        codes = [c for c, _w in self.by_text["稽"]]
+        self.assertIn("ru", codes)
+        self.assertIn("ru=", codes)
+        self.assertIn("稽", [t for t, _w in self.by_code["ru="]])
 
     def test_prefix_completion_codes(self):
         pc = self.prefix_completion
@@ -140,11 +159,14 @@ class TestZhuyin(unittest.TestCase):
         self.assertIn("你\tsu3\t", text)
         self.assertIn("你好\tsu3cl3\t", text)
         self.assertIn("中國\t5j/eji6\t", text)
+        self.assertIn("中國\t5j/=eji6\t", text)
         # Tone-less single-syllable codes are merged into the same dictionary.
         self.assertIn("你\tsu\t", text)
         self.assertIn("呢\tsu\t", text)
         self.assertIn("擬\tsu\t", text)
         self.assertIn("我\tji\t", text)
+        # First-tone alias used by the space key.
+        self.assertIn("稽\tru=\t", text)
 
     def test_completion_file_if_built(self):
         path = ROOT / "dist" / "lua" / "zhuyin_completion_data.lua"

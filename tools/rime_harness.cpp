@@ -157,6 +157,28 @@ static void run_preedit_case(const char* name, const char* keys,
     g_api->destroy_session(session);
 }
 
+static void run_paged_case(const char* name, const char* keys, int pages,
+                           int final_key, const char* expect) {
+    RimeSessionId session = g_api->create_session();
+    if (!session) {
+        out("CASE %s: FAILED to create session\n", name);
+        return;
+    }
+    g_api->select_schema(session, "puffime");
+    send_string(session, keys);
+    for (int i = 0; i < pages; ++i) {
+        g_api->process_key(session, 0xFF56, 0);  // Page_Down
+    }
+    if (final_key) send_char(session, final_key);
+    std::string committed = commit_text(session);
+    bool ok = (committed == expect);
+    out("CASE %-24s keys=[%s] pages=%d final=%d => [%s] expect [%s] %s\n",
+        name, keys, pages, final_key, committed.c_str(), expect,
+        ok ? "OK" : "MISMATCH");
+    print_context(session);
+    g_api->destroy_session(session);
+}
+
 static void run_context_case(const char* name, const char* keys) {
     RimeSessionId session = g_api->create_session();
     if (!session) {
@@ -171,7 +193,7 @@ static void run_context_case(const char* name, const char* keys) {
 }
 
 static void run_select_case(const char* name, const char* keys, int keycode,
-                            int mask, const char* expect, bool then_space = false) {
+                            int mask, const char* expect, bool then_enter = false) {
     RimeSessionId session = g_api->create_session();
     if (!session) {
         out("CASE %s: FAILED to create session\n", name);
@@ -180,8 +202,8 @@ static void run_select_case(const char* name, const char* keys, int keycode,
     g_api->select_schema(session, "puffime");
     send_string(session, keys);
     g_api->process_key(session, keycode, mask);
-    if (then_space) {
-        g_api->process_key(session, ' ', 0);
+    if (then_enter) {
+        g_api->process_key(session, XK_Return, 0);
     }
     std::string committed = commit_text(session);
     bool ok = (committed == expect);
@@ -370,15 +392,27 @@ int main() {
     run_preedit_case("english-digit-space-preedit", "hello1 ", "hello1 ");
     run_case("english-digit-then-space-enter", "hello1 world", XK_Return,
              "hello1 world");
-    run_case("zhuyin-su3", "`su3", ' ', "你");
-    run_case("zhuyin-u", "`u", ' ', "一");
-    run_case("zhuyin-su3cl3", "`su3cl3", ' ', "你好");
-    run_case("zhuyin-ji3", "`ji3", ' ', "我");
-    run_case("zhuyin-wu0", "`wu0", ' ', "天");
-    run_case("zhuyin-w8-enter", "`w8", XK_Return, "他");
+    // Zhuyin: Space is the first-tone key and never commits; Enter commits.
+    run_case("zhuyin-su3-enter", "`su3", XK_Return, "你");
+    run_case("zhuyin-su3-space-no-commit", "`su3", ' ', "");
+    run_case("zhuyin-u-enter", "`u", XK_Return, "一");
+    run_case("zhuyin-u-first-tone-enter", "`u ", XK_Return, "一");
+    run_case("zhuyin-su3cl3-enter", "`su3cl3", XK_Return, "你好");
     run_case("zhuyin-ji3-enter", "`ji3", XK_Return, "我");
+    run_case("zhuyin-wu0-enter", "`wu0", XK_Return, "天");
+    run_case("zhuyin-w8-enter", "`w8", XK_Return, "他");
     run_case("zhuyin-ji3-2-enter", "`ji32", XK_Return, "婑");
     run_case("zhuyin-invalid-ji2-enter", "`ji2", XK_Return, "");
+    // 稽 (ㄐㄧ first tone): Space narrows `ru` from all tones to first tone.
+    run_case("zhuyin-ru-enter", "`ru", XK_Return, "給");
+    run_case("zhuyin-ru-space-no-commit", "`ru", ' ', "");
+    run_case("zhuyin-ru-first-tone-enter", "`ru ", XK_Return, "機");
+    run_paged_case("zhuyin-ru-first-tone-ji", "`ru ", 2, XK_Return, "稽");
+    run_case("zhuyin-ru-first-tone-digit", "`ru 1", XK_Return, "機");
+    run_case("zhuyin-phrase-first-tone-enter", "`ru t86", XK_Return, "稽查");
+    run_case("zhuyin-phrase-marked-both", "`rup wu0 ", XK_Return, "今天");
+    run_case("zhuyin-phrase-normal-space", "`rupwu0 ", XK_Return, "今天");
+    run_case("zhuyin-incomplete-space-noop", "`1 ", XK_Return, "不");
 
     // Context-only cases: check that the English candidate is present.
     run_context_case("context-the", "the");
@@ -396,15 +430,16 @@ int main() {
     run_preedit_case("zhuyin-preedit-initial-b-tone", "`1u6", "ㄅㄧˊ");
     run_preedit_case("zhuyin-preedit-ba", "`18", "ㄅㄚ");
     run_context_case("context-zhuyin-ba", "`18");
-    // An incomplete initial (no exact code) now has frequency-ordered
-    // prefix candidates, so Space/Enter commit the first one.
-    run_case("zhuyin-initial-b-space", "`1", ' ', "不");
+    // An incomplete initial (no exact code) has no first-tone alias: Space is
+    // swallowed and Enter commits the first prefix-completion candidate.
+    run_case("zhuyin-initial-b-space", "`1", ' ', "");
     run_case("zhuyin-initial-b-enter", "`1", XK_Return, "不");
     run_context_case("context-zhuyin-initial-b", "`1");
     run_count_case("zhuyin-count-initial-b", "`1", 1908);
     // An exact syllable keeps its exact candidates first and appends the
     // frequency-ordered completions (之/只/至... then 中/這...).
     run_count_case("zhuyin-count-initial-zh", "`5", 2591);
+    run_preedit_case("zhuyin-preedit-first-tone", "`ru ", "ㄐㄧˉ");
     run_preedit_case("zhuyin-preedit-partial-next-syllable", "`su3c",
                      "ㄋㄧˇㄏ");
     run_case("zhuyin-partial-next-syllable-space", "`su3c", ' ', "");
@@ -473,7 +508,7 @@ int main() {
         g_api->destroy_session(session);
     }
 
-    // Zhuyin digit selection must highlight only; space commits.
+    // Zhuyin digit selection must highlight only; Enter commits.
     run_highlight_case("zhuyin-ji3-after-plain-2", "`ji32");
     {
         RimeSessionId session = g_api->create_session();
@@ -483,9 +518,9 @@ int main() {
         g_api->process_key(session, '3', 0);
         out("CASE zhuyin-ji3-after-plain-2-3 (highlight only)\n");
         print_context(session);
-        g_api->process_key(session, ' ', 0);
+        g_api->process_key(session, XK_Return, 0);
         std::string committed = commit_text(session);
-        out("CASE zhuyin-ji3-2-3-space => [%s] expect [捰] %s\n",
+        out("CASE zhuyin-ji3-2-3-enter => [%s] expect [捰] %s\n",
             committed.c_str(), committed == "捰" ? "OK" : "MISMATCH");
         g_api->destroy_session(session);
     }
@@ -496,9 +531,9 @@ int main() {
         g_api->process_key(session, '@', 1);
         out("CASE zhuyin-ji3-after-shift2 (highlight only)\n");
         print_context(session);
-        g_api->process_key(session, ' ', 0);
+        g_api->process_key(session, XK_Return, 0);
         std::string committed = commit_text(session);
-        out("CASE zhuyin-ji3-shift2-space => [%s] expect [婑] %s\n",
+        out("CASE zhuyin-ji3-shift2-enter => [%s] expect [婑] %s\n",
             committed.c_str(), committed == "婑" ? "OK" : "MISMATCH");
         g_api->destroy_session(session);
     }
@@ -557,7 +592,7 @@ int main() {
         g_api->process_key(session, '3', 0);
         out("CASE seq1-ji3-after-digit-3\n");
         print_context(session);
-        g_api->process_key(session, ' ', 0);
+        g_api->process_key(session, XK_Return, 0);
         out("CASE seq1-commit => [%s]\n", commit_text(session).c_str());
         send_string(session, "`su3");
         out("CASE seq1-next-su3\n");
@@ -568,7 +603,7 @@ int main() {
         RimeSessionId session = g_api->create_session();
         g_api->select_schema(session, "puffime");
         send_string(session, "`ji3");
-        g_api->process_key(session, ' ', 0);
+        g_api->process_key(session, XK_Return, 0);
         out("CASE seq2-commit => [%s]\n", commit_text(session).c_str());
         send_string(session, "`su3");
         out("CASE seq2-next-su3\n");
@@ -587,8 +622,8 @@ int main() {
         g_api->process_key(session, '3', 0x40000000);   // release tone (kReleaseMask)
         out("CASE zhuyin-tone-press-release\n");
         print_context(session);
-        g_api->process_key(session, ' ', 0);
-        out("CASE zhuyin-tone-press-release-space => [%s] expect [我]\n",
+        g_api->process_key(session, XK_Return, 0);
+        out("CASE zhuyin-tone-press-release-enter => [%s] expect [我]\n",
             commit_text(session).c_str());
         g_api->destroy_session(session);
     }
@@ -612,7 +647,7 @@ int main() {
         RimeSessionId session = g_api->create_session();
         g_api->select_schema(session, "puffime");
         send_string(session, "`wu0");
-        g_api->process_key(session, ' ', 0);
+        g_api->process_key(session, XK_Return, 0);
         out("CASE forgotten-last-seed => [%s]\n", commit_text(session).c_str());
         g_api->destroy_session(session);
     }

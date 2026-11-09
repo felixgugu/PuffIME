@@ -54,7 +54,17 @@ BOPOMOFO_TO_KEY = {
     "ㄢ": "0", "ㄣ": "p", "ㄤ": ";", "ㄥ": "/", "ㄦ": "-",
 }
 
+# Normal codes: the first tone is omitted, so `ru` (ㄐㄧ) lists every tone.
 TONE_TO_KEY = {"1": "", "2": "6", "3": "3", "4": "4", "5": "7"}
+
+# First-tone alias codes: the same reading with one explicit first-tone marker.
+# The schema maps the marker to ˉ, and the Lua space handler turns a plain
+# space into this marker so `ru` + Space shows only the ㄐㄧ first-tone list.
+FIRST_TONE_KEY = "="
+MARKED_TONE_TO_KEY = {"1": FIRST_TONE_KEY, "2": "6", "3": "3", "4": "4", "5": "7"}
+
+# Tone key -> Bopomofo display symbol (first tone is normally omitted).
+TONE_SYMBOLS = {"6": "ˊ", "3": "ˇ", "4": "ˋ", "7": "˙", FIRST_TONE_KEY: "ˉ"}
 
 INITIALS = {
     "b": "ㄅ", "p": "ㄆ", "m": "ㄇ", "f": "ㄈ",
@@ -87,7 +97,7 @@ ZERO_INITIAL = {
     "wan": "uan", "wen": "uen", "wang": "uang", "weng": "ueng",
 }
 
-ALLOWED_CODE = set("1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-6347")
+ALLOWED_CODE = set("1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-6347=")
 
 INITIAL_ORDER = ("zh", "ch", "sh", "b", "p", "m", "f", "d", "t", "n", "l",
                  "g", "k", "h", "j", "q", "x", "r", "z", "c", "s")
@@ -96,8 +106,10 @@ MAX_VARIANTS = 8
 MAX_READINGS_PER_CHAR = 3
 
 
-def convert_syllable(raw: str):
+def convert_syllable(raw: str, tone_map=None):
     """pinyin syllable -> (bopomofo, tone_key) or None."""
+    if tone_map is None:
+        tone_map = TONE_TO_KEY
     raw = raw.strip().lower().replace("u:", "ü").replace("v", "ü")
     if not raw:
         return None
@@ -112,17 +124,17 @@ def convert_syllable(raw: str):
         raw = "er"
 
     if raw in ("m", "n"):
-        return ({"m": "ㄇ", "n": "ㄋ"}[raw], TONE_TO_KEY[tone])
+        return ({"m": "ㄇ", "n": "ㄋ"}[raw], tone_map[tone])
     if raw in ("hm", "hng", "ng"):
         return None
 
     if raw in FINALS:
-        return (FINALS[raw], TONE_TO_KEY[tone])
+        return (FINALS[raw], tone_map[tone])
     if raw in ZERO_INITIAL:
         final = ZERO_INITIAL[raw]
         if final not in FINALS:
             return None
-        return (FINALS[final], TONE_TO_KEY[tone])
+        return (FINALS[final], tone_map[tone])
 
     initial = ""
     for cand in INITIAL_ORDER:
@@ -135,7 +147,7 @@ def convert_syllable(raw: str):
 
     # Apical vowels: zhi chi shi ri zi ci si
     if final == "i" and initial in ("zh", "ch", "sh", "r", "z", "c", "s"):
-        return (INITIALS[initial], TONE_TO_KEY[tone])
+        return (INITIALS[initial], tone_map[tone])
 
     if initial in ("j", "q", "x"):
         if final == "u":
@@ -160,7 +172,7 @@ def convert_syllable(raw: str):
 
     if final not in FINALS:
         return None
-    return (INITIALS[initial] + FINALS[final], TONE_TO_KEY[tone])
+    return (INITIALS[initial] + FINALS[final], tone_map[tone])
 
 
 def bopomofo_to_code(bopomofo: str, tone_key: str) -> str | None:
@@ -170,12 +182,14 @@ def bopomofo_to_code(bopomofo: str, tone_key: str) -> str | None:
         return None
 
 
-def convert_reading(pinyin: str):
+def convert_reading(pinyin: str, tone_map=None):
     """Convert a (possibly multi-syllable) pinyin reading to (code, bopomofo)."""
+    if tone_map is None:
+        tone_map = TONE_TO_KEY
     code = []
     bopomofo = []
     for raw in pinyin.split():
-        converted = convert_syllable(raw)
+        converted = convert_syllable(raw, tone_map)
         if converted is None:
             return None
         bo, tone = converted
@@ -183,8 +197,17 @@ def convert_reading(pinyin: str):
         if key is None:
             return None
         code.append(key)
-        bopomofo.append(bo + {"6": "ˊ", "3": "ˇ", "4": "ˋ", "7": "˙"}.get(tone, ""))
+        bopomofo.append(bo + TONE_SYMBOLS.get(tone, ""))
     return "".join(code), "".join(bopomofo)
+
+
+def convert_reading_marked(pinyin: str):
+    """Convert a reading to a code with an explicit first-tone marker.
+
+    Non-first tones are identical to convert_reading(); only first-tone
+    syllables gain FIRST_TONE_KEY (e.g. ji1 -> ru=, ji1 cha2 -> ru=t86).
+    """
+    return convert_reading(pinyin, MARKED_TONE_TO_KEY)
 
 
 def parse_weight(token: str | None) -> float:
@@ -244,13 +267,15 @@ def read_essay(path: Path):
     return freq
 
 
-def build_readings(rows):
+def build_readings(rows, tone_map=None):
     """char -> list of (reading_weight, code, pinyin), deduped by code."""
+    if tone_map is None:
+        tone_map = TONE_TO_KEY
     readings = collections.defaultdict(dict)
     for text, pinyin, weight in rows:
         if len(text) != 1:
             continue
-        converted = convert_reading(pinyin)
+        converted = convert_reading(pinyin, tone_map)
         if converted is None:
             continue
         code, _bo = converted
@@ -313,12 +338,12 @@ def build_prefix_completion(items):
     """
     codes_by_text = collections.defaultdict(set)
     for text, code, _weight, _kind in items:
-        if len(text) == 1:
+        if len(text) == 1 and "=" not in code:
             codes_by_text[text].add(code)
 
     best = collections.defaultdict(dict)  # prefix -> text -> (weight, code)
     for text, code, weight, _kind in items:
-        if len(text) != 1:
+        if len(text) != 1 or "=" in code:
             continue
         for i in range(1, len(code)):
             prefix = code[:i]
@@ -338,9 +363,11 @@ def build_prefix_completion(items):
 def build(rows, freq, min_phrase_weight: int):
     entries = {}
     readings = build_readings(rows)
+    readings_marked = build_readings(rows, MARKED_TONE_TO_KEY)
     invalid = []
     too_long = 0
     bad_chars = 0
+    first_tone_entries = 0
 
     # 1) Single-character entries: every reading from terra, ordered by essay
     #    frequency (fallback: reading percentage).
@@ -363,6 +390,18 @@ def build(rows, freq, min_phrase_weight: int):
         if key not in entries or w > entries[key][0]:
             entries[key] = (w, "single")
 
+        # Alias with an explicit first-tone marker (ji1 -> ru=).  The normal
+        # code above stays, so existing input and phrase codes do not break.
+        marked = convert_reading(pinyin, MARKED_TONE_TO_KEY)
+        if marked is not None:
+            mcode, _bo = marked
+            if mcode != code and valid_code(mcode):
+                mkey = (text, mcode)
+                if mkey not in entries or w > entries[mkey][0]:
+                    if mkey not in entries:
+                        first_tone_entries += 1
+                    entries[mkey] = (w, "single-first-tone")
+
     # 2) Terra's own multi-character entries (rare words / fixed phrases).
     for text, pinyin, weight in rows:
         if len(text) <= 1:
@@ -383,7 +422,19 @@ def build(rows, freq, min_phrase_weight: int):
         if key not in entries or w > entries[key][0]:
             entries[key] = (w, "terra-phrase")
 
-    # 3) Common phrases from essay.txt, with reading variants.
+        marked = convert_reading(pinyin, MARKED_TONE_TO_KEY)
+        if marked is not None:
+            mcode, _bo = marked
+            if mcode != code and valid_code(mcode):
+                mkey = (text, mcode)
+                if mkey not in entries or w > entries[mkey][0]:
+                    if mkey not in entries:
+                        first_tone_entries += 1
+                    entries[mkey] = (w, "terra-phrase-first-tone")
+
+    # 3) Common phrases from essay.txt, with reading variants.  Generate both
+    #    the normal (first tone omitted) code and the marked alias, so `5j/eji6`
+    #    and `5j/=eji6` both reach 中國.
     phrase_count = 0
     skipped_no_reading = 0
     for text, w in freq.items():
@@ -401,6 +452,15 @@ def build(rows, freq, min_phrase_weight: int):
             if key not in entries or value[0] > entries[key][0]:
                 entries[key] = value
                 phrase_count += 1
+        marked_codes = phrase_variants(text, readings_marked)
+        for mcode in marked_codes:
+            if mcode in codes or not valid_code(mcode):
+                continue
+            mkey = (text, mcode)
+            if mkey not in entries or w > entries[mkey][0]:
+                if mkey not in entries:
+                    first_tone_entries += 1
+                entries[mkey] = (float(w), "essay-phrase-first-tone")
 
     # 4) Tone-less single-character codes.  Typing `su` matches every tone;
     #    the exact toned codes above still make `su3` narrow to tone 3.
@@ -418,6 +478,7 @@ def build(rows, freq, min_phrase_weight: int):
     return items, invalid, too_long, bad_chars, readings, {
         "phrase_entries": phrase_count,
         "skipped_no_reading": skipped_no_reading,
+        "first_tone_entries": first_tone_entries,
     }
 
 
@@ -495,6 +556,7 @@ def write_report(rows, items, invalid, too_long, bad_chars, readings, stats, com
     w(f"source rows: {len(rows)}")
     w(f"dictionary entries: {len(items)}")
     w(f"tone-less entries merged: {kinds.get('toneless', 0)}")
+    w(f"first-tone alias entries: {stats.get('first_tone_entries', 0)}")
     w("entry kinds: " + ", ".join(f"{k}:{v}" for k, v in kinds.items()))
     w(f"invalid readings skipped: {len(invalid)}")
     if invalid:
@@ -511,7 +573,7 @@ def write_report(rows, items, invalid, too_long, bad_chars, readings, stats, com
     wanted = {"你": "su3", "一": "u", "是": "g4", "中": "5j/", "國": "eji6",
               "女": "sm3", "略": "xm,4", "兒": "-6", "的": "2k7", "會": "cjo4",
               "文": "jp6", "行": "c;6", "長": "t;6", "綠": "xm4", "我": "ji3",
-              "好": "cl3", "天": "wu0"}
+              "好": "cl3", "天": "wu0", "稽": "ru="}
     for text, expected in wanted.items():
         got = [c for c, _w in by_text.get(text, [])]
         w(f"  {text}: expected {expected}, got {got[:6]} {'OK' if expected in got else 'MISS'}")

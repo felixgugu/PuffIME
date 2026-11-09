@@ -129,7 +129,7 @@ zhuyin:
   prefix: "`"
   tips: "〔注音〕"
   dictionary: puffzhuyin
-  alphabet: "1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-6347"
+  alphabet: "1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-6347="
   # Completion is needed while a syllable is still incomplete: ` + 1 (ㄅ)
   # has no dictionary entry of its own, and without a match Rime shows the
   # raw key instead of the Bopomofo preedit.  zhuyin_partial.lua drops these
@@ -141,7 +141,7 @@ zhuyin:
   enable_user_dict: false
   initial_quality: 0
   preedit_format:
-    - "xlit|1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-6347|ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦˊˇˋ˙|"
+    - "xlit|1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-6347=|ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦˊˇˋ˙ˉ|"
 
 # Zhuyin prefix completion for incomplete codes (e.g. `1 -> ㄅ).
 # src/lua/zhuyin_completion.lua reads zhuyin_completion_data.lua, generated
@@ -169,8 +169,9 @@ recognizer:
     # Disable the default uppercase passthrough; Shift is used for candidate
     # selection via key_binder.
     uppercase: ''
-    # Only the first key can start zhuyin.
-    zhuyin: '^`[0-9a-z,.;/-]*$'
+    # Only the first key can start zhuyin.  `=` is the explicit first-tone
+    # marker used by the Lua space handler (it renders as ˉ).
+    zhuyin: '^`[0-9a-z,.;/=-]*$'
     # Forgotten-code list: ,,fk (prefix ,,f + code k).
     forgotten: '^,,f.*$'
     # Weasel's built-in /X symbol menu.

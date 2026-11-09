@@ -10,7 +10,7 @@
 
 ## 為什麼注音要用 `` ` `` 觸發
 
-嘸蝦米和注音共用 `a-z`、`, .`，若完全自動合流，`su`（嘸蝦米碼）和 `su`（ㄋㄧ）無法區分。第一碼 `` ` `` 明確指定該段是注音，就沒有撞碼問題；注音的一聲／無聲調也可以直接空白上屏。
+嘸蝦米和注音共用 `a-z`、`, .`，若完全自動合流，`su`（嘸蝦米碼）和 `su`（ㄋㄧ）無法區分。第一碼 `` ` `` 明確指定該段是注音，就沒有撞碼問題；注音用空白輸入一聲，按 Enter 上屏。
 
 第一碼限制由 `recognizer` pattern 保證：
 
@@ -51,10 +51,15 @@ zhuyin segment（前綴 `）
 注音段則由 `zhuyin_digits.lua` 在 `express_editor` 之前攔截 `Return`（`0xFF0D`）與數字鍵盤
 `KP_Enter`（`0xFF8D`）：
 
-- 有候選 → 重播一次 Space，讓 `express_editor` 上屏目前 highlight 的候選（和空白鍵同一條 commit 路徑）。
-- 沒有候選 → 吞掉 Return，**不會**把 `` `w8 ``、`` `ji2 `` 之類的原文上屏；留在緩衝讓使用者 Backspace。
+- 有候選且不是殘碼佔位 → `ctx:select(seg.selected_index)` + `ctx:commit()` 上屏
+  highlight 的候選。走 context 是為了讓 `forgotten.lua` 的 `commit_notifier`
+  讀到 `get_commit_text()`。
+- 沒有候選或只有殘碼佔位 → 吞掉 Return，**不會**把 `` `w8 ``、`` `ji2 `` 之類的原文上屏；
+  留在緩衝讓使用者 Backspace。
 
-這個攔截只在注音段生效（input 以 `` ` `` 開頭），所以 `the` + Enter 仍然是 `the`。
+注音段的空白不是 commit 鍵：空白是一聲，由 `zhuyin_digits.lua` 吃掉（或 replay
+隱藏的 `=`），不會傳到 `express_editor`。這個攔截只在注音段生效（input 以 `` ` `` 開頭），
+所以 `the` + Enter 仍然是 `the`。
 
 ### 英文候選
 
@@ -201,22 +206,27 @@ speller:
   `DirectCommit` 意外把目前輸入上屏。
 - 非 composing 時回傳 `kNoop`（2），讓 `recognizer` 處理第一碼。
 
-### 注音段的數字與空白
+### 注音段的聲調、數字與空白
 
-`zhuyin_digits.lua` 是 `lua_processor`，處理注音段裡「數字既是輸入、又可能是選字」
-的衝突：
+`zhuyin_digits.lua` 是 `lua_processor`，處理注音段的聲調、空白、Enter 與數字：
 
-- input **已帶聲調**（結尾是 3/4/6/7）→ 數字**只選取**第 n 個候選（highlight），
-  不送出。
-- `Shift+數字`（有候選時）→ 同樣只選取，不送出（一聲音節用這個）。
+- **空白 = 一聲**。完整音節尚未帶聲調時，空白會 replay 一個隱藏的 `=` 鍵，
+  把字典裡帶 `=` 的一聲別名送進 input（`ru` → `ru=`），preedit 顯示 `ˉ`，
+  候選只留一聲。已帶 3/4/6/7/`=` 時空白不動作。
+- **空白永遠不上屏**；即使有候選也一樣，只有 `Enter` 上屏。
+- **Enter**：有候選且不是殘碼佔位時，用 `ctx:select(seg.selected_index)` +
+  `ctx:commit()` 上屏 highlight 的候選。走 context 是為了讓
+  `forgotten.lua` 的 `commit_notifier` 讀到 `get_commit_text()`；殘碼／無候選時
+  吞掉，不會上屏 `` `w8 `` 原文。
+- input **已帶聲調**（結尾是 3/4/6/7/`=`）→ 平數字**只選取**第 n 個候選
+  （highlight），不送出。
+- `Shift+數字`（有候選時）→ 同樣只選取，不送出。
 - input **尚未帶聲調** → 平數字是注音輸入（1=ㄅ、2=ㄉ、5=ㄓ、8=ㄚ、9=ㄞ、0=ㄢ）。
-- 有候選時按空白 → 交給 `express_editor` 送出目前 highlight 的候選。
-- 沒有候選時按空白 → 回傳 `kAccepted` 把空白吃掉，**不會**把 `ji2`、`ji32`
-  之類的原文送出；留在緩衝讓使用者 Backspace。
+- 殘碼／只有補全候選時按空白 → 吃掉，不會加聲調，也不會送出。
 
 實作上有一個坑：Weasel 0.17.4 內建的 librime-lua **沒有 `ctx:highlight()`**，
-而 `ctx:select()` 會立刻把 segment 標成 selected → 直接上屏；直接改
-`Segment.selected_index` 也只改到副本。因此 `zhuyin_digits.lua` 用
+`ctx:select()` 只會把 segment 標成 selected，還要 `ctx:commit()` 才會上屏；
+直接改 `Segment.selected_index` 也只改到副本。因此 `zhuyin_digits.lua` 用
 `env.engine:process_key(KeyEvent("Tab"))` / `Shift+Tab` 來移動 highlight，
 並在 schema 加上：
 
@@ -228,7 +238,7 @@ selector:
     ISO_Left_Tab: previous_candidate
 ```
 
-這樣 Tab/Shift+Tab 只改 `selected_index`、不 confirm；按空白才 confirm。
+這樣 Tab/Shift+Tab 只改 `selected_index`、不 confirm；按 `Enter` 才 confirm。
 
 **Release 事件**：Weasel 會把按鍵的 release 也送進 engine。Lua processor 一定要
 先檢查 `key:release()` 並回傳 `kNoop`；否則聲調鍵（例如 `3`）的 release 會被
@@ -236,8 +246,8 @@ selector:
 候選」，光標就跳到第 3 個。`zhuyin_digits.lua` 與 `grave_guard.lua` 都有這個 guard。
 
 因為數字同時是注音鍵，無法同時支援「所有情況都用數字選字」；目前規則是
-「有聲調才用平數字選」。一聲音節請用 `Shift+數字`。若已打了一個有聲調的音節，
-要接一個數字開頭的新音節（例如 ㄉ），先按空白送出目前候選，再打數字。
+「有聲調（含一聲 `=`）才用平數字選」。若已打了一個有聲調的音節，要接一個數字
+開頭的新音節（例如 ㄉ），先按 `Enter` 上屏目前候選，再打數字。
 
 ### 殘碼與前綴候選
 
@@ -259,12 +269,13 @@ selector:
   剩餘碼長，不是字頻），保留精確候選與 `zhuyin_completion`。若兩者都沒有
   （例如 `su3c`、`ji2`），才輸出一個 `zhuyin_partial` 佔位候選，並把它的
   `preedit` 設成注音字串（`1` → `ㄅ`、`su3c` → `ㄋㄧˇㄏ`）。
-- `zhuyin_digits.lua`：佔位候選是唯一候選時，空白與 Enter 會被吞掉，
+- `zhuyin_digits.lua`：佔位候選是唯一候選時，空白與 Enter 都會被吞掉，
   未完成的音節不會被上屏；平數字仍可繼續輸入（`1` → `u` → `6` = ㄅㄧˊ）。
-  有真正候選時，空白／Enter 上屏 highlight 的候選（和嘸蝦米一樣）。
+  有真正候選時，Enter 上屏 highlight 的候選；空白是一聲（見「注音段的聲調、
+  數字與空白」），不會上屏。
 
-因此 `` ` `` + `1` 會顯示 `ㄅ` 並列出 ㄅ 開頭的常用字，空白上屏「不」；
-`` ` `` + `su3c` 會顯示 `ㄋㄧˇㄏ`，空白不會送出。
+因此 `` ` `` + `1` 會顯示 `ㄅ` 並列出 ㄅ 開頭的常用字，按 Enter 上屏「不」；
+`` ` `` + `su3c` 會顯示 `ㄋㄧˇㄏ`，空白與 Enter 都不會送出。
 
 ### 注音字典
 
@@ -296,6 +307,8 @@ schema:
 - 打 `su` → 兩種碼都匹配，候選是所有聲調的單字，依 essay 字頻排序。
 - 打 `su3` → 只有 `su3` 條目匹配，縮小到三聲。
 - 只做單音節；多音節詞仍用原本的帶聲調碼（例如 `su3cl3` = 你好）。
+- 一聲另有帶 `=` 的別名（例如 `稽` 同時有 `ru` 與 `ru=`）；`ru=` 只列 ㄐㄧ
+  一聲的字，空白鍵就是送這個別名。正常碼完全保留，所以舊打法不會壞。
 
 **為什麼不開第二個 translator**：若用 `table_translator@zhuyin_toneless`
 搭配 `initial_quality`，Rime 會先把 exact 字典的候選排完，才排無聲調字典，
@@ -540,7 +553,8 @@ recognizer:
 - `terra_pinyin.dict.yaml` 提供讀音（pinyin + 聲調 + 百分比）。
 - `essay.txt` 提供字頻／詞頻，用來排序候選。
 - pinyin → bopomofo → 大千鍵碼：
-  - 一聲不帶鍵；二聲 `6`、三聲 `3`、四聲 `4`、輕聲 `7`。
+  - 一聲不帶鍵（正常碼）；另外產生帶 `=` 的一聲別名（`ru=`），由空白鍵使用。
+    二聲 `6`、三聲 `3`、四聲 `4`、輕聲 `7`。
   - 例：`ni3 → ㄋㄧˇ → su3`、`yi1 → ㄧ → u`、`shi4 → ㄕˋ → g4`、
     `zhong1 → ㄓㄨㄥ → 5j/`、`nv3 → ㄋㄩˇ → sm3`、`er2 → ㄦˊ → -6`。
 - 單字：terra 的每個讀音都產生條目，權重 = essay 字頻 + 讀音百分比。
@@ -550,7 +564,7 @@ recognizer:
   - essay 中長度 2–5、權重 ≥ 1000 的詞，用每個字的前 3 個讀音產生最多 8 種
     組合，權重 = essay 詞頻。
   - 例：`你好 → su3cl3`、`中國 → 5j/eji6`、`今天 → rupwu0`。
-- 目前 156,908 筆；18 筆無法轉換（`yai2`、`eh1`、`wong4` 等罕見音）。
+- 目前 254,568 筆（含約 6.2 萬筆一聲別名）；18 筆無法轉換（`yai2`、`eh1`、`wong4` 等罕見音）。
 
 ## 已知取捨
 
