@@ -10,7 +10,7 @@ Windows / Android 的**嘸蝦米輸入法**，用 Rime 打造。
 - **嘸蝦米**：打一碼就列出所有候選字，常用字優先；每多打一碼就縮小。
 - **注音**：打 `` ` `` 直接切注音，不用換輸入法。
 - **英文**：直接打，候選列最後有原文；可連打整句，Enter 上屏。
-- **順手功能**：`v` 快速選第 2 個、符號形狀、`/X` 符號選單、五款配色。
+- **順手功能**：`v` 快速選第 2 個、符號形狀、`/X` 符號選單、15 款配色。
 
 ## Windows 安裝
 
@@ -29,6 +29,37 @@ Windows / Android 的**嘸蝦米輸入法**，用 Rime 打造。
 
 安裝完如果語言列沒有小狼毫，到 `C:\Program Files\Rime\weasel-0.17.4\` 執行
 `WeaselSetup.exe`，把它加入鍵盤。
+
+### 配色
+
+內建 15 款配色。安裝後在 `PuffIME-win64` 資料夾執行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File theme-package.ps1 -List
+powershell -ExecutionPolicy Bypass -File theme-package.ps1 -Name dark
+```
+
+`-Name` 可用：`light`、`dark`、`gray`、`macaron`、`mediterranean`、`sakura`、
+`cherry`、`ocean`、`mint`、`lavender`、`morandi_blue`、`morandi_tea`、
+`amber_dark`、`forest_dark`、`ink_dark`（也可用中文「淺、深、灰、馬卡龍、
+地中海、櫻、櫻桃、海洋、薄荷、薰衣草、莫蘭迪藍、莫蘭迪茶棕、琥珀深、森林深、墨黑」）。
+不帶 `-Name` 會列出編號讓你選。
+
+### 反安裝
+
+雙擊 `uninstall.bat`，或執行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File uninstall-package.ps1
+```
+
+它會移除 PuffIME 的字典、Lua、方案、配色與使用者資料，並重新部署 Rime；
+小狼毫本身會保留。常用選項：
+
+- `-UninstallWeasel`：連小狼毫一起移除（winget）。
+- `-RestoreBackup`：還原安裝前自動備份的 `%APPDATA%\Rime.backup-*`。
+- `-KeepUserData`：保留忘記清單與使用者詞庫。
+- `-NoBackup`：不另外保留安全備份。
 
 ## 怎麼打字
 

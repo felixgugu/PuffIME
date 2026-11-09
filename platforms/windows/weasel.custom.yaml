@@ -1,13 +1,24 @@
 # Weasel UI style for PuffIME
 #
-# Five color schemes (Weasel uses 0xBBGGRR, i.e. BGR, not RGB):
+# 15 color schemes (Weasel uses 0xBBGGRR, i.e. BGR, not RGB):
 #   puff                 Puff 淺
 #   puff_dark            Puff 深
 #   puff_gray            Puff 灰
 #   puff_macaron         Puff 馬卡龍
 #   puff_mediterranean   Puff 地中海
+#   puff_amber_dark      Puff 琥珀深
+#   puff_cherry          Puff 櫻桃
+#   puff_forest_dark     Puff 森林深
+#   puff_ink_dark        Puff 墨黑高對比
+#   puff_lavender        Puff 薰衣草
+#   puff_mint            Puff 薄荷
+#   puff_morandi_blue    Puff 莫蘭迪藍
+#   puff_morandi_tea     Puff 莫蘭迪茶棕
+#   puff_ocean           Puff 海洋
+#   puff_sakura          Puff 櫻
 #
 # Switch with:  powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -Name dark
+# List all:     powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -List
 # or edit style/color_scheme below.
 #
 # Common UI: Microsoft JhengHei, single-row candidates, rounded corners,
@@ -25,7 +36,7 @@ patch:
     inline_preedit: true
     hover_type: none
     layout:
-      max_width: 0          # 0 = single row (no wrapping)
+      max_width: 0 # 0 = single row (no wrapping)
       min_width: 0
       margin_x: 12
       margin_y: 10
@@ -43,92 +54,273 @@ patch:
       baseline: 0
 
   preset_color_schemes:
-    # ── 淺 / Light ─────────────────────────────────────────────
     puff:
-      name: "Puff 淺"
-      author: PuffIME
-      back_color: 0xFAFAFA
-      border_color: 0xD0D0D0
-      shadow_color: 0x22000000
-      text_color: 0x222222
-      hilited_text_color: 0x111111
-      hilited_back_color: 0xFEF0E8          # RGB E8F0FE (light blue)
-      candidate_text_color: 0x333333
-      comment_text_color: 0x888888
-      label_color: 0x888888
-      hilited_label_color: 0x666666
-      hilited_candidate_text_color: 0xA1470D  # RGB 0D47A1 (deep blue)
-      hilited_candidate_back_color: 0xFDF2E3  # RGB E3F2FD (pale blue)
-      hilited_comment_text_color: 0x666666
-
-    # ── 深 / Dark ──────────────────────────────────────────────
+      {
+        author: PuffIME,
+        back_color: 0xFAFAFA,
+        border_color: 0xD0D0D0,
+        candidate_text_color: 0x333333,
+        comment_text_color: 0x888888,
+        hilited_back_color: 0xFEF0E8,
+        hilited_candidate_back_color: 0xFDF2E3,
+        hilited_candidate_text_color: 0xA1470D,
+        hilited_comment_text_color: 0x666666,
+        hilited_label_color: 0x666666,
+        hilited_text_color: 0x111111,
+        label_color: 0x888888,
+        name: "Puff 淺",
+        shadow_color: 0x22000000,
+        text_color: 0x222222,
+      }
+    puff_amber_dark:
+      {
+        author: PuffIME,
+        back_color: 0x1C2226,
+        border_color: 0x425563,
+        candidate_text_color: 0xC2D2DC,
+        comment_text_color: 0x869AA8,
+        hilited_back_color: 0x303F4B,
+        hilited_candidate_back_color: 0x475E70,
+        hilited_candidate_text_color: 0x70C8FF,
+        hilited_comment_text_color: 0xA2B8C8,
+        hilited_label_color: 0xA2B8C8,
+        hilited_text_color: 0xFFFFFF,
+        label_color: 0x6E8494,
+        name: "Puff 琥珀深",
+        shadow_color: 0x66000000,
+        text_color: 0xCBD9E2,
+      }
+    puff_cherry:
+      {
+        author: PuffIME,
+        back_color: 0xF4F2FC,
+        border_color: 0xBCB2E4,
+        candidate_text_color: 0x382D6B,
+        comment_text_color: 0x8278AF,
+        hilited_back_color: 0xE8E4F7,
+        hilited_candidate_back_color: 0xCFC6F4,
+        hilited_candidate_text_color: 0x301F8C,
+        hilited_comment_text_color: 0x5A4F82,
+        hilited_label_color: 0x5A4F82,
+        hilited_text_color: 0x1E164A,
+        label_color: 0x8278AF,
+        name: "Puff 櫻桃",
+        shadow_color: 0x22000000,
+        text_color: 0x2D245A,
+      }
     puff_dark:
-      name: "Puff 深"
-      author: PuffIME
-      back_color: 0x28231E                  # RGB 1E2328 (deep blue-gray)
-      border_color: 0x52463A                # RGB 3A4652
-      shadow_color: 0x66000000
-      text_color: 0xE6E6E6
-      hilited_text_color: 0xFFFFFF
-      hilited_back_color: 0x4D3B2D          # RGB 2D3B4D
-      candidate_text_color: 0xD6D6D6
-      comment_text_color: 0xAEA49A          # RGB 9AA4AE
-      label_color: 0x9E948A                 # RGB 8A949E
-      hilited_label_color: 0xD0C8C0         # RGB C0C8D0
-      hilited_candidate_text_color: 0xFFD19B  # RGB 9BD1FF
-      hilited_candidate_back_color: 0x5E4934  # RGB 34495E
-      hilited_comment_text_color: 0xCCC2B8  # RGB B8C2CC
-
-    # ── 灰 / Gray ──────────────────────────────────────────────
+      {
+        author: PuffIME,
+        back_color: 0x28231E,
+        border_color: 0x52463A,
+        candidate_text_color: 0xD6D6D6,
+        comment_text_color: 0xAEA49A,
+        hilited_back_color: 0x4D3B2D,
+        hilited_candidate_back_color: 0x5E4934,
+        hilited_candidate_text_color: 0xFFD19B,
+        hilited_comment_text_color: 0xCCC2B8,
+        hilited_label_color: 0xD0C8C0,
+        hilited_text_color: 0xFFFFFF,
+        label_color: 0x9E948A,
+        name: "Puff 深",
+        shadow_color: 0x66000000,
+        text_color: 0xE6E6E6,
+      }
+    puff_forest_dark:
+      {
+        author: PuffIME,
+        back_color: 0x23271E,
+        border_color: 0x4F5944,
+        candidate_text_color: 0xD7DDD0,
+        comment_text_color: 0x9AA38F,
+        hilited_back_color: 0x3B4431,
+        hilited_candidate_back_color: 0x4C5840,
+        hilited_candidate_text_color: 0xC5E2A7,
+        hilited_comment_text_color: 0xBFC8B4,
+        hilited_label_color: 0xBFC8B4,
+        hilited_text_color: 0xFFFFFF,
+        label_color: 0x858F7A,
+        name: "Puff 森林深",
+        shadow_color: 0x66000000,
+        text_color: 0xE3E8DD,
+      }
     puff_gray:
-      name: "Puff 灰"
-      author: PuffIME
-      back_color: 0xE8E8E8
-      border_color: 0xB0B0B0
-      shadow_color: 0x33000000
-      text_color: 0x333333
-      hilited_text_color: 0x111111
-      hilited_back_color: 0xD6D6D6
-      candidate_text_color: 0x444444
-      comment_text_color: 0x767676
-      label_color: 0x767676
-      hilited_label_color: 0x555555
-      hilited_candidate_text_color: 0x111111
-      hilited_candidate_back_color: 0xCACACA
-      hilited_comment_text_color: 0x555555
-
-    # ── 馬卡龍 / Macaron ──────────────────────────────────────
+      {
+        author: PuffIME,
+        back_color: 0xE8E8E8,
+        border_color: 0xB0B0B0,
+        candidate_text_color: 0x444444,
+        comment_text_color: 0x767676,
+        hilited_back_color: 0xD6D6D6,
+        hilited_candidate_back_color: 0xCACACA,
+        hilited_candidate_text_color: 0x111111,
+        hilited_comment_text_color: 0x555555,
+        hilited_label_color: 0x555555,
+        hilited_text_color: 0x111111,
+        label_color: 0x767676,
+        name: "Puff 灰",
+        shadow_color: 0x33000000,
+        text_color: 0x333333,
+      }
+    puff_ink_dark:
+      {
+        author: PuffIME,
+        back_color: 0x1C1C1C,
+        border_color: 0x424242,
+        candidate_text_color: 0xD4D4D4,
+        comment_text_color: 0x808080,
+        hilited_back_color: 0x303030,
+        hilited_candidate_back_color: 0x444444,
+        hilited_candidate_text_color: 0xCCCCCC,
+        hilited_comment_text_color: 0xAAAAAA,
+        hilited_label_color: 0xAAAAAA,
+        hilited_text_color: 0xFFFFFF,
+        label_color: 0x808080,
+        name: "Puff 墨黑高對比",
+        shadow_color: 0x66000000,
+        text_color: 0xE0E0E0,
+      }
+    puff_lavender:
+      {
+        author: PuffIME,
+        back_color: 0xFAF1F4,
+        border_color: 0xD9B2BF,
+        candidate_text_color: 0x5C3442,
+        comment_text_color: 0xA8798A,
+        hilited_back_color: 0xF5E3E9,
+        hilited_candidate_back_color: 0xE8C6D4,
+        hilited_candidate_text_color: 0x602038,
+        hilited_comment_text_color: 0x825465,
+        hilited_label_color: 0x825465,
+        hilited_text_color: 0x361924,
+        label_color: 0xA8798A,
+        name: "Puff 薰衣草",
+        shadow_color: 0x22000000,
+        text_color: 0x4B2A36,
+      }
     puff_macaron:
-      name: "Puff 馬卡龍"
-      author: PuffIME
-      back_color: 0xF8F2FD                  # RGB FDF2F8 (pale pink)
-      border_color: 0xC8B7E7                # RGB E7B7C8 (pink)
-      shadow_color: 0x22000000
-      text_color: 0x3A2C4A                  # RGB 4A2C3A (plum)
-      hilited_text_color: 0x241A2E          # RGB 2E1A24
-      hilited_back_color: 0xE8F5DF          # RGB DFF5E8 (mint)
-      candidate_text_color: 0x4A3A5A        # RGB 5A3A4A
-      comment_text_color: 0x907CA8          # RGB A87C90 (mauve)
-      label_color: 0x907CA8
-      hilited_label_color: 0x66527A         # RGB 7A5266
-      hilited_candidate_text_color: 0x442A5B  # RGB 5B2A44
-      hilited_candidate_back_color: 0xF7DDE6  # RGB E6DDF7 (lavender)
-      hilited_comment_text_color: 0x66527A
-
-    # ── 地中海 / Mediterranean ────────────────────────────────
+      {
+        author: PuffIME,
+        back_color: 0xF8F2FD,
+        border_color: 0xC8B7E7,
+        candidate_text_color: 0x4A3A5A,
+        comment_text_color: 0x907CA8,
+        hilited_back_color: 0xE8F5DF,
+        hilited_candidate_back_color: 0xF7DDE6,
+        hilited_candidate_text_color: 0x442A5B,
+        hilited_comment_text_color: 0x66527A,
+        hilited_label_color: 0x66527A,
+        hilited_text_color: 0x241A2E,
+        label_color: 0x907CA8,
+        name: "Puff 馬卡龍",
+        shadow_color: 0x22000000,
+        text_color: 0x3A2C4A,
+      }
     puff_mediterranean:
-      name: "Puff 地中海"
-      author: PuffIME
-      back_color: 0xE8F3F7                  # RGB F7F3E8 (warm sand)
-      border_color: 0xC9B88F                # RGB 8FB8C9 (sea blue)
-      shadow_color: 0x22000000
-      text_color: 0x4D3A1F                  # RGB 1F3A4D (deep navy)
-      hilited_text_color: 0x473212          # RGB 123247
-      hilited_back_color: 0xF2F0D9          # RGB D9F0F2 (light turquoise)
-      candidate_text_color: 0x5A4A2B        # RGB 2B4A5A
-      comment_text_color: 0x968A6B          # RGB 6B8A96
-      label_color: 0x968A6B
-      hilited_label_color: 0x786B4A         # RGB 4A6B78
-      hilited_candidate_text_color: 0x2A4B8A  # RGB 8A4B2A (terracotta)
-      hilited_candidate_back_color: 0xC8E3F5  # RGB F5E3C8 (light sand)
-      hilited_comment_text_color: 0x786B4A
+      {
+        author: PuffIME,
+        back_color: 0xE8F3F7,
+        border_color: 0xC9B88F,
+        candidate_text_color: 0x5A4A2B,
+        comment_text_color: 0x968A6B,
+        hilited_back_color: 0xF2F0D9,
+        hilited_candidate_back_color: 0xC8E3F5,
+        hilited_candidate_text_color: 0x2A4B8A,
+        hilited_comment_text_color: 0x786B4A,
+        hilited_label_color: 0x786B4A,
+        hilited_text_color: 0x473212,
+        label_color: 0x968A6B,
+        name: "Puff 地中海",
+        shadow_color: 0x22000000,
+        text_color: 0x4D3A1F,
+      }
+    puff_mint:
+      {
+        author: PuffIME,
+        back_color: 0xF7FBF2,
+        border_color: 0xC8DDB4,
+        candidate_text_color: 0x42542C,
+        comment_text_color: 0x8BA072,
+        hilited_back_color: 0xECF5E0,
+        hilited_candidate_back_color: 0xD8E9C2,
+        hilited_candidate_text_color: 0x3F6014,
+        hilited_comment_text_color: 0x687A50,
+        hilited_label_color: 0x687A50,
+        hilited_text_color: 0x2B3B0F,
+        label_color: 0x8BA072,
+        name: "Puff 薄荷",
+        shadow_color: 0x22000000,
+        text_color: 0x374724,
+      }
+    puff_morandi_blue:
+      {
+        author: PuffIME,
+        back_color: 0xF5F3F1,
+        border_color: 0xC6BFB8,
+        candidate_text_color: 0x4E443A,
+        comment_text_color: 0x968C82,
+        hilited_back_color: 0xEDE8E3,
+        hilited_candidate_back_color: 0xE0D7CE,
+        hilited_candidate_text_color: 0x4B3620,
+        hilited_comment_text_color: 0x746A60,
+        hilited_label_color: 0x746A60,
+        hilited_text_color: 0x221A12,
+        label_color: 0x968C82,
+        name: "Puff 莫蘭迪藍",
+        shadow_color: 0x22000000,
+        text_color: 0x42382E,
+      }
+    puff_morandi_tea:
+      {
+        author: PuffIME,
+        back_color: 0xEFF2F4,
+        border_color: 0xB8C0C7,
+        candidate_text_color: 0x3C444B,
+        comment_text_color: 0x7A848C,
+        hilited_back_color: 0xDDE4E9,
+        hilited_candidate_back_color: 0xCAD4DC,
+        hilited_candidate_text_color: 0x242F37,
+        hilited_comment_text_color: 0x58626A,
+        hilited_label_color: 0x58626A,
+        hilited_text_color: 0x141A1F,
+        label_color: 0x7A848C,
+        name: "Puff 莫蘭迪茶棕",
+        shadow_color: 0x22000000,
+        text_color: 0x2E363D,
+      }
+    puff_ocean:
+      {
+        author: PuffIME,
+        back_color: 0xFCF7F0,
+        border_color: 0xE0C8A4,
+        candidate_text_color: 0x664A2A,
+        comment_text_color: 0xB39670,
+        hilited_back_color: 0xF9EFE1,
+        hilited_candidate_back_color: 0xEDD8B8,
+        hilited_candidate_text_color: 0x7A4C18,
+        hilited_comment_text_color: 0x8C6F4A,
+        hilited_label_color: 0x8C6F4A,
+        hilited_text_color: 0x472F0F,
+        label_color: 0xB39670,
+        name: "Puff 海洋",
+        shadow_color: 0x22000000,
+        text_color: 0x553E22,
+      }
+    puff_sakura:
+      {
+        author: PuffIME,
+        back_color: 0xF6F4FC,
+        border_color: 0xCDC5E8,
+        candidate_text_color: 0x3D365B,
+        comment_text_color: 0x8C84A9,
+        hilited_back_color: 0xEAE7F7,
+        hilited_candidate_back_color: 0xD4CCF2,
+        hilited_candidate_text_color: 0x382A7D,
+        hilited_comment_text_color: 0x685F88,
+        hilited_label_color: 0x685F88,
+        hilited_text_color: 0x1C173A,
+        label_color: 0x8C84A9,
+        name: "Puff 櫻",
+        shadow_color: 0x22000000,
+        text_color: 0x322B4D,
+      }

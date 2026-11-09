@@ -82,6 +82,8 @@ Copy-Item (Join-Path $root "data\README.md") (Join-Path $pkg "data\README.md") -
 Copy-Item (Join-Path $PSScriptRoot "install.bat") $pkg -Force
 Copy-Item (Join-Path $PSScriptRoot "install-package.ps1") $pkg -Force
 Copy-Item (Join-Path $PSScriptRoot "theme-package.ps1") $pkg -Force
+Copy-Item (Join-Path $PSScriptRoot "uninstall-package.ps1") $pkg -Force
+Copy-Item (Join-Path $PSScriptRoot "uninstall.bat") $pkg -Force
 Copy-Item (Join-Path $root "README.md") (Join-Path $pkg "README.md") -Force
 
 if (-not $IncludeDict) {
@@ -143,6 +145,8 @@ $install_notes = @'
 安裝程式會自動安裝小狼毫（需要網路），並備份原本的 Rime 設定。
 字碼表只留在你的電腦上，不會上傳。
 
+移除：雙擊 uninstall.bat（或執行 uninstall-package.ps1）。
+
 如果語言列沒有小狼毫：
 到 C:\Program Files\Rime\weasel-0.17.4\ 執行 WeaselSetup.exe，
 把它加入鍵盤。
@@ -169,6 +173,8 @@ if ($IncludeDict) {
 
 注意：這個包裝含有從你自己的嘸蝦米字碼表在本機產生的字典，
 請只在自己的裝置使用，不要公開散布字典或字碼表。
+
+移除：雙擊 uninstall.bat（或執行 uninstall-package.ps1）。
 
 如果語言列沒有小狼毫：
 到 C:\Program Files\Rime\weasel-0.17.4\ 執行 WeaselSetup.exe，
