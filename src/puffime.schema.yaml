@@ -14,7 +14,7 @@
 schema:
   schema_id: puffime
   name: 泡芙輸入法
-  version: "0.1"
+  version: "0.1.1"
   icon: puff.ico
   ascii_icon: puff_ascii.ico
   author:

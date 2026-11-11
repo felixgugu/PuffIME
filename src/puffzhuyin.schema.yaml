@@ -9,7 +9,7 @@
 schema:
   schema_id: puffzhuyin
   name: "〔依賴〕Puff 注音"
-  version: "0.1"
+  version: "0.1.1"
   author:
     - PuffIME
   description: |
